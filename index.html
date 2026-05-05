@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta name="theme-color" content="#f97316"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="回家任務"/>
+  <title>回家任務清單 🏠</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --orange:  #f97316;
+      --yellow:  #fbbf24;
+      --green:   #22c55e;
+      --blue:    #3b82f6;
+      --pink:    #ec4899;
+      --purple:  #a855f7;
+      --bg:      #fff7ed;
+      --card:    #ffffff;
+      --text:    #1c1917;
+      --dim:     #78716c;
+      --radius:  20px;
+      --font:    'Nunito', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ── 彩色泡泡背景 ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(251,191,36,.25) 0%, transparent 40%),
+        radial-gradient(circle at 85% 10%, rgba(236,72,153,.2)  0%, transparent 35%),
+        radial-gradient(circle at 60% 85%, rgba(59,130,246,.2)  0%, transparent 40%),
+        radial-gradient(circle at 10% 80%, rgba(34,197,94,.2)   0%, transparent 35%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 0 100px;
+      padding-top: env(safe-area-inset-top);
+    }
+
+    /* ── Header ── */
+    .header {
+      padding: 20px 20px 12px;
+      text-align: center;
+    }
+
+    .header-emoji {
+      font-size: 56px;
+      line-height: 1;
+      display: block;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--orange);
+      margin-top: 6px;
+      text-shadow: 3px 3px 0 rgba(249,115,22,.2);
+    }
+
+    .date-str {
+      font-size: 14px;
+      color: var(--dim);
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    /* ── 進度條 ── */
+    .progress-wrap {
+      margin: 0 20px 16px;
+      background: #e7e5e4;
+      border-radius: 99px;
+      height: 22px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,.1);
+    }
+
+    .progress-bar {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--yellow), var(--orange));
+      transition: width .5s cubic-bezier(.34,1.56,.64,1);
+      position: relative;
+    }
+
+    .progress-bar::after {
+      content: '⭐';
+      position: absolute;
+      right: -2px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .progress-label {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--dim);
+      margin-bottom: 16px;
+    }
+
+    /* ── 清單容器 ── */
+    .list-wrap { padding: 0 16px; display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── 單一項目卡片 ── */
+    .item-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
+      border: 3px solid transparent;
+      transition: all .25s ease;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .item-card.done {
+      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+      border-color: var(--green);
+    }
+
+    .item-card:active { transform: scale(.97); }
+
+    .check-circle {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      border: 3px solid #e7e5e4;
+      background: #f5f5f4;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      transition: all .3s cubic-bezier(.34,1.56,.64,1);
+    }
+
+    .item-card.done .check-circle {
+      background: var(--green);
+      border-color: var(--green);
+      transform: scale(1.1);
+    }
+
+    .item-card.done .check-circle::after {
+      content: '✓';
+      font-size: 26px;
+      color: white;
+      font-weight: 900;
+    }
+
+    .item-card:not(.done) .check-circle .item-icon { display: block; }
+    .item-card.done .check-circle .item-icon { display: none; }
+
+    .item-text {
+      flex: 1;
+      font-size: 18px;
+      font-weight: 800;
+      transition: all .2s;
+    }
+
+    .item-card.done .item-text {
+      text-decoration: line-through;
+      color: var(--dim);
+    }
+
+    .item-delete {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity .2s;
+      padding: 4px;
+      border-radius: 8px;
+    }
+
+    /* 編輯模式才顯示刪除 */
+    .edit-mode .item-delete { opacity: 1; }
+
+    /* ── 新增項目 ── */
+    .add-wrap {
+      margin: 20px 16px 0;
+      display: flex;
+      gap: 10px;
+    }
+
+    .add-wrap input {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      border: 3px solid #e7e5e4;
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 700;
+      background: var(--card);
+      outline: none;
+      transition: border-color .2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    }
+
+    .add-wrap input:focus { border-color: var(--orange); }
+
+    .add-wrap button {
+      width: 52px; height: 52px;
+      border-radius: 16px;
+      background: var(--orange);
+      border: none;
+      font-size: 26px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(249,115,22,.4);
+      transition: all .2s;
+      display: grid;
+      place-items: center;
+    }
+
+    .add-wrap button:active { transform: scale(.93); }
+
+    /* ── 底部按鈕列 ── */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      padding: 12px 16px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      background: rgba(255,247,237,.92);
+      backdrop-filter: blur(12px);
+      border-top: 2px solid rgba(249,115,22,.15);
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 13px;
+      border-radius: 14px;
+      border: none;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn:active { transform: scale(.96); }
+
+    .btn-reset {
+      background: #fee2e2;
+      color: #ef4444;
+    }
+
+    .btn-edit {
+      background: #eff6ff;
+      color: var(--blue);
+    }
+
+    .btn-edit.active {
+      background: var(--blue);
+      color: white;
+    }
+
+    .btn-history {
+      background: #f3e8ff;
+      color: var(--purple);
+    }
+
+    /* ── 歷史紀錄面板 ── */
+    .panel-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.4);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+    }
+
+    .panel-overlay.open { display: flex; }
+
+    .panel {
+      background: var(--bg);
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      border-radius: 28px 28px 0 0;
+      padding: 20px 20px max(20px,env(safe-area-inset-bottom));
+      max-height: 75dvh;
+      overflow-y: auto;
+      animation: slideUp .3s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    .panel-title {
+      font-size: 22px;
+      font-weight: 900;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .history-day {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+
+    .history-day-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--orange);
+      margin-bottom: 8px;
+    }
+
+    .history-item {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--dim);
+      padding: 3px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .history-item.done-item { color: var(--green); }
+
+    .close-btn {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 16px;
+      background: var(--orange);
+      color: white;
+      border: none;
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    /* ── 全部完成慶祝畫面 ── */
+    #celebrate {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #fef9c3, #fde68a, #fed7aa);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    #celebrate.show { display: flex; }
+
+    .celebrate-emoji {
+      font-size: 80px;
+      animation: spinBounce 1s ease infinite alternate;
+    }
+
+    @keyframes spinBounce {
+      from { transform: scale(.9) rotate(-10deg); }
+      to   { transform: scale(1.1) rotate(10deg); }
+    }
+
+    .celebrate-title {
+      font-size: 36px;
+      font-weight: 900;
+      color: var(--orange);
+      text-align: center;
+      text-shadow: 3px 3px 0 rgba(249,115,22,.3);
+    }
+
+    .celebrate-sub {
+      font-size: 18px;
+      font-weight: 800;
+      color: #92400e;
+      text-align: center;
+    }
+
+    .celebrate-close {
+      margin-top: 20px;
+      padding: 16px 40px;
+      border-radius: 20px;
+      background: var(--orange);
+      color: white;
+      border: none;
+      font-family: var(--font);
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(249,115,22,.4);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { transform: scale(1); }
+      50%      { transform: scale(1.05); }
+    }
+
+    /* 紙屑動畫 */
+    .confetti {
+      position: absolute;
+      width: 12px; height: 12px;
+      border-radius: 3px;
+      animation: fall linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes fall {
+      from { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      to   { transform: translateY(100dvh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ── iOS 安裝提示 ── */
+    #ios-banner {
+      margin: 16px;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #eff6ff, #dbeafe);
+      border-radius: 16px;
+      border: 2px solid #93c5fd;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e40af;
+      display: none;
+      line-height: 1.6;
+    }
+
+    /* 載入動畫 */
+    .item-card {
+      opacity: 0;
+      transform: translateX(-20px);
+      animation: slideIn .35s ease forwards;
+    }
+
+    @keyframes slideIn {
+      to { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 慶祝畫面 -->
+<div id="celebrate">
+  <span class="celebrate-emoji">🏆</span>
+  <div class="celebrate-title">太棒了！！！</div>
+  <div class="celebrate-sub">今天所有任務都完成了！<br>你真是超級棒的孩子！⭐</div>
+  <button class="celebrate-close" onclick="closeCelebrate()">謝謝！繼續加油 🚀</button>
+</div>
+
+<!-- 歷史面板 -->
+<div class="panel-overlay" id="history-overlay" onclick="closeHistory(event)">
+  <div class="panel">
+    <div class="panel-title">📅 歷史紀錄</div>
+    <div id="history-list"></div>
+    <button class="close-btn" onclick="closeHistoryPanel()">關閉</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="header">
+    <span class="header-emoji">🏠</span>
+    <h1>回家任務清單</h1>
+    <div class="date-str" id="date-str"></div>
+  </div>
+
+  <!-- iOS 安裝提示 -->
+  <div id="ios-banner">
+    📲 想加到主畫面嗎？<br>
+    點 Safari 的 <strong>分享 □↑</strong> → <strong>加入主畫面</strong>
+  </div>
+
+  <!-- 進度條 -->
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+  </div>
+  <div class="progress-label" id="progress-label">還沒開始，加油！💪</div>
+
+  <!-- 清單 -->
+  <div class="list-wrap" id="list-wrap"></div>
+
+  <!-- 新增項目 -->
+  <div class="add-wrap" id="add-wrap" style="display:none">
+    <input id="new-item-input" type="text" placeholder="新增任務..." maxlength="20"/>
+    <button onclick="addItem()">➕</button>
+  </div>
+</div>
+
+<!-- 底部按鈕 -->
+<div class="bottom-bar">
+  <button class="btn btn-reset" onclick="resetDay()">🔄 重置</button>
+  <button class="btn btn-edit" id="edit-btn" onclick="toggleEdit()">✏️ 編輯</button>
+  <button class="btn btn-history" onclick="showHistory()">📅 紀錄</button>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  資料結構（全部存 localStorage）
+// ══════════════════════════════════════
+const STORAGE_ITEMS   = 'checklist-items-v1';
+const STORAGE_DONE    = 'checklist-done-v1';   // { "YYYY-MM-DD": [idx,...] }
+const STORAGE_HISTORY = 'checklist-history-v1'; // [ { date, items:[{text,done}] } ]
+
+const DEFAULTS = [
+  { icon: '👟', text: '換居家服' },
+  { icon: '🍱', text: '吃點心' },
+  { icon: '📚', text: '寫功課' },
+  { icon: '🎒', text: '整理書包' },
+  { icon: '🛁', text: '洗澡' },
+  { icon: '😴', text: '準備睡覺' },
+];
+
+const ICONS = ['📚','🎒','🍱','👟','🛁','😴','⭐','🎮','🐶','🌟','✏️','🎨','🏃','🎵'];
+
+let items   = [];   // [{icon, text}]
+let doneSet = new Set();  // 今天勾選的 index
+let editMode = false;
+let celebrated = false;
+
+// ══════════════════════════════════════
+//  初始化
+// ══════════════════════════════════════
+function todayKey() {
+  return new Date().toLocaleDateString('zh-TW', {timeZone:'Asia/Taipei'})
+    .replace(/\//g, '-');
+}
+
+function init() {
+  // 日期顯示
+  const now = new Date();
+  document.getElementById('date-str').textContent =
+    now.toLocaleDateString('zh-TW', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+
+  // 載入項目
+  const saved = localStorage.getItem(STORAGE_ITEMS);
+  items = saved ? JSON.parse(saved) : [...DEFAULTS];
+
+  // 載入今日勾選
+  const doneData = JSON.parse(localStorage.getItem(STORAGE_DONE) || '{}');
+  const todayDone = doneData[todayKey()] || [];
+  doneSet = new Set(todayDone);
+
+  render();
+  updateProgress();
+
+  // iOS 提示
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (isIOS && !isStandalone) {
+    document.getElementById('ios-banner').style.display = 'block';
+  }
+}
+
+// ══════════════════════════════════════
+//  儲存
+// ══════════════════════════════════════
+function saveItems() {
+  localStorage.setItem(STORAGE_ITEMS, JSON.stringify(items));
+}
+
+function saveDone() {
+  const doneData = JSON.parse(localStorage.getItem(STORAGE_DONE) || '{}');
+  doneData[todayKey()] = [...doneSet];
+  localStorage.setItem(STORAGE_DONE, JSON.stringify(doneData));
+}
+
+function saveHistory() {
+  const hist = JSON.parse(localStorage.getItem(STORAGE_HISTORY) || '[]');
+  const today = todayKey();
+  const existing = hist.findIndex(h => h.date === today);
+  const entry = {
+    date: today,
+    items: items.map((item, i) => ({ text: item.text, done: doneSet.has(i) }))
+  };
+  if (existing >= 0) hist[existing] = entry;
+  else hist.unshift(entry);
+  // 只保留最近 30 天
+  localStorage.setItem(STORAGE_HISTORY, JSON.stringify(hist.slice(0, 30)));
+}
+
+// ══════════════════════════════════════
+//  渲染
+// ══════════════════════════════════════
+function render() {
+  const wrap = document.getElementById('list-wrap');
+  wrap.innerHTML = '';
+  if (editMode) wrap.classList.add('edit-mode');
+  else wrap.classList.remove('edit-mode');
+
+  items.forEach((item, i) => {
+    const done = doneSet.has(i);
+    const card = document.createElement('div');
+    card.className = 'item-card' + (done ? ' done' : '');
+    card.style.animationDelay = (i * 0.06) + 's';
+
+    card.innerHTML = `
+      <div class="check-circle">
+        <span class="item-icon">${item.icon}</span>
+      </div>
+      <div class="item-text">${item.text}</div>
+      <button class="item-delete" onclick="deleteItem(event,${i})">❌</button>
+    `;
+
+    card.addEventListener('click', () => toggleItem(i));
+    wrap.appendChild(card);
+  });
+
+  // 顯示/隱藏新增輸入
+  document.getElementById('add-wrap').style.display = editMode ? 'flex' : 'none';
+}
+
+// ══════════════════════════════════════
+//  勾選
+// ══════════════════════════════════════
+function toggleItem(i) {
+  if (editMode) return;
+  if (doneSet.has(i)) doneSet.delete(i);
+  else doneSet.add(i);
+
+  saveDone();
+  saveHistory();
+  render();
+  updateProgress();
+
+  // 全部完成檢查
+  if (doneSet.size === items.length && items.length > 0 && !celebrated) {
+    celebrated = true;
+    setTimeout(showCelebrate, 400);
+  }
+}
+
+// ══════════════════════════════════════
+//  進度條
+// ══════════════════════════════════════
+function updateProgress() {
+  const pct = items.length ? Math.round(doneSet.size / items.length * 100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  const label = document.getElementById('progress-label');
+  if (pct === 0)        label.textContent = '還沒開始，加油！💪';
+  else if (pct < 50)    label.textContent = `完成 ${doneSet.size} / ${items.length} 項，繼續！🔥`;
+  else if (pct < 100)   label.textContent = `快到了！還差 ${items.length - doneSet.size} 項！⚡`;
+  else                  label.textContent = '🎉 全部完成！你好棒！';
+}
+
+// ══════════════════════════════════════
+//  編輯模式
+// ══════════════════════════════════════
+function toggleEdit() {
+  editMode = !editMode;
+  const btn = document.getElementById('edit-btn');
+  btn.textContent = editMode ? '✅ 完成' : '✏️ 編輯';
+  btn.classList.toggle('active', editMode);
+  render();
+}
+
+function deleteItem(e, i) {
+  e.stopPropagation();
+  items.splice(i, 1);
+  // 更新 doneSet index
+  const newDone = new Set();
+  doneSet.forEach(idx => { if (idx < i) newDone.add(idx); else if (idx > i) newDone.add(idx - 1); });
+  doneSet = newDone;
+  saveItems();
+  saveDone();
+  render();
+  updateProgress();
+}
+
+function addItem() {
+  const input = document.getElementById('new-item-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const icon = ICONS[Math.floor(Math.random() * ICONS.length)];
+  items.push({ icon, text });
+  input.value = '';
+  saveItems();
+  render();
+  updateProgress();
+}
+
+// Enter 鍵新增
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && editMode) addItem();
+});
+
+// ══════════════════════════════════════
+//  重置（今天）
+// ══════════════════════════════════════
+function resetDay() {
+  if (!confirm('要重新開始今天的任務嗎？')) return;
+  doneSet.clear();
+  celebrated = false;
+  saveDone();
+  saveHistory();
+  render();
+  updateProgress();
+}
+
+// ══════════════════════════════════════
+//  慶祝
+// ══════════════════════════════════════
+function showCelebrate() {
+  const el = document.getElementById('celebrate');
+  el.classList.add('show');
+  spawnConfetti();
+}
+
+function closeCelebrate() {
+  document.getElementById('celebrate').classList.remove('show');
+}
+
+function spawnConfetti() {
+  const colors = ['#f97316','#fbbf24','#22c55e','#3b82f6','#ec4899','#a855f7'];
+  const el = document.getElementById('celebrate');
+  for (let i = 0; i < 40; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.cssText = `
+      left: ${Math.random() * 100}%;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      animation-duration: ${1.5 + Math.random() * 2}s;
+      animation-delay: ${Math.random() * 1.5}s;
+      width: ${8 + Math.random() * 10}px;
+      height: ${8 + Math.random() * 10}px;
+      border-radius: ${Math.random() > .5 ? '50%' : '3px'};
+    `;
+    el.appendChild(c);
+  }
+}
+
+// ══════════════════════════════════════
+//  歷史紀錄
+// ══════════════════════════════════════
+function showHistory() {
+  const hist = JSON.parse(localStorage.getItem(STORAGE_HISTORY) || '[]');
+  const container = document.getElementById('history-list');
+  if (!hist.length) {
+    container.innerHTML = '<p style="text-align:center;color:#78716c;font-weight:700;padding:20px">還沒有紀錄喔！</p>';
+  } else {
+    container.innerHTML = hist.map(h => `
+      <div class="history-day">
+        <div class="history-day-title">📅 ${h.date}
+          （${h.items.filter(i=>i.done).length}/${h.items.length} 完成）
+        </div>
+        ${h.items.map(i => `
+          <div class="history-item ${i.done ? 'done-item' : ''}">
+            ${i.done ? '✅' : '⬜'} ${i.text}
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+  }
+  document.getElementById('history-overlay').classList.add('open');
+}
+
+function closeHistory(e) {
+  if (e.target === document.getElementById('history-overlay')) closeHistoryPanel();
+}
+
+function closeHistoryPanel() {
+  document.getElementById('history-overlay').classList.remove('open');
+}
+
+// ══════════════════════════════════════
+//  Service Worker
+// ══════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(console.warn);
+}
+
+// ══════════════════════════════════════
+//  啟動
+// ══════════════════════════════════════
+init();
+</script>
+</body>
+</html>
