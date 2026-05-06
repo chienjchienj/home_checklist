@@ -710,11 +710,25 @@ function todayKey() {
     .replace(/\//g, '-');
 }
 
-// iOS 安全的事件綁定：同時綁 click + touchend 防止失效
+// iOS 安全的事件綁定：同時綁 click + touchend，並排除滑動手勢
 function tap(el, fn) {
   if (!el) return;
-  let touched = false;
+  let startX, startY, moved, touched;
+  el.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    moved = false;
+    touched = false;
+  }, { passive: true });
+  el.addEventListener('touchmove', function(e) {
+    if (!moved) {
+      const dx = Math.abs(e.touches[0].clientX - startX);
+      const dy = Math.abs(e.touches[0].clientY - startY);
+      if (dx > 8 || dy > 8) moved = true;
+    }
+  }, { passive: true });
   el.addEventListener('touchend', function(e) {
+    if (moved) return;
     e.preventDefault();
     touched = true;
     fn(e);
