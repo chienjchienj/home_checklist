@@ -606,19 +606,32 @@
     }
 
     /* ── Icon 選擇器 ── */
+    .icon-category {
+      margin-bottom: 14px;
+    }
+
+    .icon-category-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--dim);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      padding-left: 2px;
+    }
+
     .icon-picker-grid {
       display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      gap: 8px;
-      margin-top: 4px;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
     }
 
     .icon-option {
       aspect-ratio: 1;
-      border-radius: 12px;
+      border-radius: 14px;
       border: 3px solid transparent;
       background: var(--card);
-      font-size: 22px;
+      font-size: 28px;
       display: grid;
       place-items: center;
       cursor: pointer;
@@ -628,12 +641,32 @@
       box-shadow: 0 2px 6px rgba(0,0,0,.08);
     }
 
-    .icon-option:active { transform: scale(.88); }
+    .icon-option:active { transform: scale(.85); }
 
     .icon-option.selected {
       border-color: var(--orange);
       background: #fff7ed;
-      box-shadow: 0 0 0 2px rgba(249,115,22,.3);
+      box-shadow: 0 0 0 3px rgba(249,115,22,.25);
+    }
+
+    /* 編輯模式：任務名稱變成可輸入 */
+    .edit-mode .item-card .item-text {
+      text-decoration: none !important;
+      color: var(--text) !important;
+    }
+
+    .item-name-input {
+      flex: 1;
+      font-family: var(--font);
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid var(--orange);
+      outline: none;
+      padding: 2px 0;
+      width: 100%;
     }
 
     /* 編輯模式下 check-circle 可點擊選 icon */
@@ -757,22 +790,16 @@ const DEFAULTS = [
   { icon: '😴', text: '準備睡覺' },
 ];
 
-const ICONS = [
-  // 學習 & 文具
-  '📚','✏️','📝','📖','🖊️','📐','📏','🔬','🧪','💡',
-  // 食物 & 飲料
-  '🍱','🍎','🥛','🧃','🍪','🍕','🍜','🥗','🍰','🍫',
-  // 衣物 & 生活
-  '👟','👕','🧦','🎒','🛁','🪥','🧴','🪒','🧹','🛏️',
-  // 運動 & 活動
-  '🏃','⚽','🏊','🚴','🧘','🏋️','🎯','🏸','⛹️','🤸',
-  // 娛樂 & 興趣
-  '🎮','🎵','🎨','🎭','📺','🎧','📷','🎹','🎸','🎲',
-  // 動物 & 自然
-  '🐶','🐱','🐰','🦊','🐸','🦋','🌸','🌈','⭐','🌟',
-  // 表情 & 符號
-  '😴','😊','💪','🔥','⚡','🎉','🏆','❤️','🌙','☀️',
+const ICON_CATEGORIES = [
+  { label: '📖 學習 & 文具', icons: ['📚','✏️','📝','📖','🖊️','📐','📏','🔬','🧪','💡','🖥️','📓'] },
+  { label: '🍱 食物 & 飲料', icons: ['🍱','🍎','🥛','🧃','🍪','🍕','🍜','🥗','🍰','🍫','🥤','🍳'] },
+  { label: '👟 衣物 & 生活', icons: ['👟','👕','🧦','🎒','🛁','🪥','🧴','🧹','🛏️','🪴','🧺','🚿'] },
+  { label: '⚽ 運動 & 活動', icons: ['🏃','⚽','🏊','🚴','🧘','🏋️','🎯','🏸','🤸','🧗','🛹','🥊'] },
+  { label: '🎮 娛樂 & 興趣', icons: ['🎮','🎵','🎨','🎭','📺','🎧','📷','🎹','🎸','🎲','🧩','📚'] },
+  { label: '🐶 動物 & 自然', icons: ['🐶','🐱','🐰','🦊','🐸','🦋','🌸','🌈','⭐','🌟','🌿','🌺'] },
+  { label: '😊 表情 & 符號', icons: ['😴','😊','💪','🔥','⚡','🎉','🏆','❤️','🌙','☀️','✨','🎀'] },
 ];
+const ICONS = ICON_CATEGORIES.flatMap(c => c.icons);
 
 
 let items   = [];
@@ -1002,15 +1029,25 @@ function render() {
     card.className = 'item-card' + (done ? ' done' : '');
     card.style.animationDelay = (i * 0.06) + 's';
 
-    card.innerHTML = `
-      <div class="check-circle">
-        <span class="item-icon">${item.icon}</span>
-      </div>
-      <div class="item-text">${item.text}</div>
-      <button class="item-delete" data-idx="${i}">❌</button>
-    `;
+    if (editMode) {
+      card.innerHTML = `
+        <div class="check-circle">
+          <span class="item-icon">${item.icon}</span>
+        </div>
+        <input class="item-name-input" type="text" value="${item.text}" maxlength="20"/>
+        <button class="item-delete" data-idx="${i}">❌</button>
+      `;
+    } else {
+      card.innerHTML = `
+        <div class="check-circle">
+          <span class="item-icon">${item.icon}</span>
+        </div>
+        <div class="item-text">${item.text}</div>
+        <button class="item-delete" data-idx="${i}">❌</button>
+      `;
+    }
 
-    // 用 tap() 綁定卡片點擊
+    // 用 tap() 綁定卡片點擊（非編輯模式才勾選）
     tap(card, () => toggleItem(i));
 
     // 編輯模式：點 check-circle 選 icon
@@ -1020,6 +1057,17 @@ function render() {
       e.stopPropagation();
       showIconPicker(i);
     });
+
+    // 編輯模式：名稱輸入框即時儲存
+    if (editMode) {
+      const input = card.querySelector('.item-name-input');
+      input.addEventListener('input', () => {
+        items[i].text = input.value;
+        saveItems();
+      });
+      input.addEventListener('click', (e) => e.stopPropagation());
+      input.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+    }
 
     // 刪除按鈕
     const delBtn = card.querySelector('.item-delete');
@@ -1119,19 +1167,31 @@ let iconPickerTarget = -1;
 
 function showIconPicker(itemIdx) {
   iconPickerTarget = itemIdx;
-  const grid = document.getElementById('icon-picker-grid');
-  grid.innerHTML = '';
-  ICONS.forEach(icon => {
-    const btn = document.createElement('button');
-    btn.className = 'icon-option' + (items[itemIdx].icon === icon ? ' selected' : '');
-    btn.textContent = icon;
-    tap(btn, () => {
-      items[itemIdx].icon = icon;
-      saveItems();
-      closeIconPicker();
-      render();
+  const container = document.getElementById('icon-picker-grid');
+  container.innerHTML = '';
+  ICON_CATEGORIES.forEach(cat => {
+    const section = document.createElement('div');
+    section.className = 'icon-category';
+    const title = document.createElement('div');
+    title.className = 'icon-category-title';
+    title.textContent = cat.label;
+    section.appendChild(title);
+    const grid = document.createElement('div');
+    grid.className = 'icon-picker-grid';
+    cat.icons.forEach(icon => {
+      const btn = document.createElement('button');
+      btn.className = 'icon-option' + (items[itemIdx].icon === icon ? ' selected' : '');
+      btn.textContent = icon;
+      tap(btn, () => {
+        items[itemIdx].icon = icon;
+        saveItems();
+        closeIconPicker();
+        render();
+      });
+      grid.appendChild(btn);
     });
-    grid.appendChild(btn);
+    section.appendChild(grid);
+    container.appendChild(section);
   });
   document.getElementById('icon-overlay').classList.add('open');
 }
