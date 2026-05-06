@@ -604,6 +604,59 @@
     @keyframes slideIn {
       to { opacity: 1; transform: none; }
     }
+
+    /* ── Icon 選擇器 ── */
+    .icon-picker-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .icon-option {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      border: 3px solid transparent;
+      background: var(--card);
+      font-size: 22px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all .15s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    }
+
+    .icon-option:active { transform: scale(.88); }
+
+    .icon-option.selected {
+      border-color: var(--orange);
+      background: #fff7ed;
+      box-shadow: 0 0 0 2px rgba(249,115,22,.3);
+    }
+
+    /* 編輯模式下 check-circle 可點擊選 icon */
+    .edit-mode .item-card .check-circle {
+      cursor: pointer;
+      position: relative;
+    }
+
+    .edit-mode .item-card .check-circle::after {
+      content: '✏️';
+      position: absolute;
+      bottom: -4px;
+      right: -4px;
+      font-size: 13px;
+      background: white;
+      border-radius: 50%;
+      line-height: 1;
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
   </style>
 </head>
 <body>
@@ -641,6 +694,15 @@
     </div>
     <div class="pwd-error-msg" id="pwd-error"></div>
     <button class="close-btn" id="close-pwd-btn" style="margin-top:20px">取消</button>
+  </div>
+</div>
+
+<!-- Icon 選擇器面板 -->
+<div class="panel-overlay" id="icon-overlay">
+  <div class="panel">
+    <div class="panel-title">🎨 選擇圖示</div>
+    <div class="icon-picker-grid" id="icon-picker-grid"></div>
+    <button class="close-btn" id="close-icon-btn" style="margin-top:20px">取消</button>
   </div>
 </div>
 
@@ -695,7 +757,23 @@ const DEFAULTS = [
   { icon: '😴', text: '準備睡覺' },
 ];
 
-const ICONS = ['📚','🎒','🍱','👟','🛁','😴','⭐','🎮','🐶','🌟','✏️','🎨','🏃','🎵'];
+const ICONS = [
+  // 學習 & 文具
+  '📚','✏️','📝','📖','🖊️','📐','📏','🔬','🧪','💡',
+  // 食物 & 飲料
+  '🍱','🍎','🥛','🧃','🍪','🍕','🍜','🥗','🍰','🍫',
+  // 衣物 & 生活
+  '👟','👕','🧦','🎒','🛁','🪥','🧴','🪒','🧹','🛏️',
+  // 運動 & 活動
+  '🏃','⚽','🏊','🚴','🧘','🏋️','🎯','🏸','⛹️','🤸',
+  // 娛樂 & 興趣
+  '🎮','🎵','🎨','🎭','📺','🎧','📷','🎹','🎸','🎲',
+  // 動物 & 自然
+  '🐶','🐱','🐰','🦊','🐸','🦋','🌸','🌈','⭐','🌟',
+  // 表情 & 符號
+  '😴','😊','💪','🔥','⚡','🎉','🏆','❤️','🌙','☀️',
+];
+
 
 let items   = [];
 let doneSet = new Set();
@@ -868,6 +946,12 @@ function bindButtons() {
     if (e.target === document.getElementById('pwd-overlay')) closePwdPanel();
   });
 
+  // Icon 選擇器關閉
+  tap(document.getElementById('close-icon-btn'), () => closeIconPicker());
+  tap(document.getElementById('icon-overlay'), (e) => {
+    if (e.target === document.getElementById('icon-overlay')) closeIconPicker();
+  });
+
   // 新增任務按鈕
   tap(document.getElementById('add-item-btn'), () => addItem());
 
@@ -928,6 +1012,14 @@ function render() {
 
     // 用 tap() 綁定卡片點擊
     tap(card, () => toggleItem(i));
+
+    // 編輯模式：點 check-circle 選 icon
+    const circle = card.querySelector('.check-circle');
+    tap(circle, (e) => {
+      if (!editMode) return;
+      e.stopPropagation();
+      showIconPicker(i);
+    });
 
     // 刪除按鈕
     const delBtn = card.querySelector('.item-delete');
@@ -1018,6 +1110,35 @@ function addItem() {
   saveItems();
   render();
   updateProgress();
+}
+
+// ══════════════════════════════════════
+//  Icon 選擇器
+// ══════════════════════════════════════
+let iconPickerTarget = -1;
+
+function showIconPicker(itemIdx) {
+  iconPickerTarget = itemIdx;
+  const grid = document.getElementById('icon-picker-grid');
+  grid.innerHTML = '';
+  ICONS.forEach(icon => {
+    const btn = document.createElement('button');
+    btn.className = 'icon-option' + (items[itemIdx].icon === icon ? ' selected' : '');
+    btn.textContent = icon;
+    tap(btn, () => {
+      items[itemIdx].icon = icon;
+      saveItems();
+      closeIconPicker();
+      render();
+    });
+    grid.appendChild(btn);
+  });
+  document.getElementById('icon-overlay').classList.add('open');
+}
+
+function closeIconPicker() {
+  document.getElementById('icon-overlay').classList.remove('open');
+  iconPickerTarget = -1;
 }
 
 // ══════════════════════════════════════
