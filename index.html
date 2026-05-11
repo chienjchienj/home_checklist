@@ -649,6 +649,37 @@
       box-shadow: 0 0 0 3px rgba(249,115,22,.25);
     }
 
+    /* ── 滑動解鎖 ── */
+    .slide-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 0;
+      background: linear-gradient(90deg, #dcfce7, #f0fdf4);
+      border-radius: var(--radius);
+      pointer-events: none;
+      z-index: 0;
+      transition: width .4s cubic-bezier(.34,1.56,.64,1);
+    }
+
+    .item-card .check-circle,
+    .item-card .item-text,
+    .item-card .item-name-input,
+    .item-card .item-delete,
+    .item-card .slide-hint { position: relative; z-index: 1; }
+
+    .slide-hint {
+      font-size: 15px;
+      color: #c8c4c0;
+      pointer-events: none;
+      flex-shrink: 0;
+      letter-spacing: -2px;
+    }
+
+    .item-card:not(.done):not(.edit-card) .check-circle {
+      cursor: ew-resize;
+      touch-action: none;
+    }
+
     /* 編輯模式：任務名稱變成可輸入 */
     .edit-mode .item-card .item-text {
       text-decoration: none !important;
@@ -1015,6 +1046,94 @@ function saveHistory() {
 }
 
 // ══════════════════════════════════════
+//  滑動手勢綁定
+// ══════════════════════════════════════
+function bindSlideGesture(card, idx) {
+  const handle = card.querySelector('.check-circle');
+  const fill   = card.querySelector('.slide-fill');
+  const hint   = card.querySelector('.slide-hint');
+  let startX = 0, startY = 0, maxSlide = 0, currentX = 0;
+  let isDragging = false, dirLocked = false;
+
+  function applyDrag(dx) {
+    const clamped = Math.max(0, Math.min(dx, maxSlide));
+    currentX = clamped;
+    handle.style.transform = `translateX(${clamped}px)`;
+    fill.style.width = (clamped / maxSlide * 100) + '%';
+    if (hint) hint.style.opacity = 1 - clamped / maxSlide * 1.5;
+  }
+
+  function onCommit() {
+    handle.style.transition = 'transform .3s cubic-bezier(.34,1.56,.64,1)';
+    fill.style.transition = 'width .3s ease';
+    handle.style.transform = `translateX(${maxSlide}px)`;
+    fill.style.width = '100%';
+    setTimeout(() => toggleItem(idx), 300);
+  }
+
+  function onSnapBack() {
+    handle.style.transition = 'transform .45s cubic-bezier(.34,1.56,.64,1)';
+    fill.style.transition = 'width .45s cubic-bezier(.34,1.56,.64,1)';
+    handle.style.transform = 'translateX(0)';
+    fill.style.width = '0%';
+    if (hint) hint.style.opacity = 1;
+    currentX = 0;
+  }
+
+  // Touch
+  handle.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isDragging = false;
+    dirLocked = false;
+    currentX = 0;
+  }, { passive: true });
+
+  handle.addEventListener('touchmove', (e) => {
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (!dirLocked) {
+      dirLocked = true;
+      if (Math.abs(dy) > Math.abs(dx)) return; // vertical scroll wins
+      isDragging = true;
+      maxSlide = card.offsetWidth - 120;
+      handle.style.transition = 'none';
+      fill.style.transition = 'none';
+    }
+    if (!isDragging) return;
+    applyDrag(dx);
+  }, { passive: true });
+
+  handle.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (currentX >= maxSlide * 0.6) onCommit();
+    else onSnapBack();
+  }, { passive: true });
+
+  // Mouse (desktop testing)
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    const mStartX = e.clientX;
+    maxSlide = card.offsetWidth - 120;
+    handle.style.transition = 'none';
+    fill.style.transition = 'none';
+    currentX = 0;
+
+    const onMove = (e) => applyDrag(e.clientX - mStartX);
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      if (currentX >= maxSlide * 0.6) onCommit();
+      else onSnapBack();
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+// ══════════════════════════════════════
 //  渲染
 // ══════════════════════════════════════
 function render() {
@@ -1030,6 +1149,7 @@ function render() {
     card.style.animationDelay = (i * 0.06) + 's';
 
     if (editMode) {
+      card.classList.add('edit-card');
       card.innerHTML = `
         <div class="check-circle">
           <span class="item-icon">${item.icon}</span>
@@ -1039,16 +1159,24 @@ function render() {
       `;
     } else {
       card.innerHTML = `
+        <div class="slide-fill"></div>
         <div class="check-circle">
           <span class="item-icon">${item.icon}</span>
         </div>
         <div class="item-text">${item.text}</div>
+        ${!done ? '<span class="slide-hint">→→</span>' : ''}
         <button class="item-delete" data-idx="${i}">❌</button>
       `;
     }
 
-    // 用 tap() 綁定卡片點擊（非編輯模式才勾選）
-    tap(card, () => toggleItem(i));
+    // 完成狀態：點卡片取消；未完成：滑動把手完成
+    if (!editMode) {
+      if (done) {
+        tap(card, () => toggleItem(i));
+      } else {
+        bindSlideGesture(card, i);
+      }
+    }
 
     // 編輯模式：點 check-circle 選 icon
     const circle = card.querySelector('.check-circle');
