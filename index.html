@@ -56,6 +56,30 @@
       z-index: 0;
     }
 
+    /* ── 大彩虹 ── */
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -30vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 180vw;
+      height: 180vw;
+      background: radial-gradient(ellipse at 50% 100%,
+        transparent               28%,
+        rgba(148,0,211,.18)       29%, rgba(148,0,211,.18)   32%,
+        rgba(75,0,130,.18)        32%, rgba(75,0,130,.18)    35%,
+        rgba(0,0,255,.18)         35%, rgba(0,0,255,.18)     38%,
+        rgba(0,200,80,.2)         38%, rgba(0,200,80,.2)     41%,
+        rgba(255,255,0,.22)       41%, rgba(255,255,0,.22)   44%,
+        rgba(255,140,0,.22)       44%, rgba(255,140,0,.22)   47%,
+        rgba(255,30,30,.2)        47%, rgba(255,30,30,.2)    50%,
+        transparent               51%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
     .app {
       position: relative;
       z-index: 1;
@@ -75,12 +99,6 @@
       font-size: 56px;
       line-height: 1;
       display: block;
-      animation: bounce 2s infinite;
-    }
-
-    @keyframes bounce {
-      0%,100% { transform: translateY(0); }
-      50%      { transform: translateY(-8px); }
     }
 
     .header h1 {
