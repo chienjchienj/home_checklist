@@ -599,20 +599,6 @@
       to   { transform: translateY(100dvh) rotate(720deg); opacity: 0; }
     }
 
-    /* ── iOS 安裝提示 ── */
-    #ios-banner {
-      margin: 16px;
-      padding: 14px 16px;
-      background: linear-gradient(135deg, #eff6ff, #dbeafe);
-      border-radius: 16px;
-      border: 2px solid #93c5fd;
-      font-size: 14px;
-      font-weight: 700;
-      color: #1e40af;
-      display: none;
-      line-height: 1.6;
-    }
-
     .item-card {
       opacity: 0;
       transform: translateX(-20px);
@@ -783,7 +769,7 @@
 <div class="panel-overlay" id="icon-overlay">
   <div class="panel">
     <div class="panel-title">🎨 選擇圖示</div>
-    <div class="icon-picker-grid" id="icon-picker-grid"></div>
+    <div id="icon-picker-grid"></div>
     <button class="close-btn" id="close-icon-btn" style="margin-top:20px">取消</button>
   </div>
 </div>
@@ -793,11 +779,6 @@
     <span class="header-emoji">🏠</span>
     <h1>回家任務清單</h1>
     <div class="date-str" id="date-str"></div>
-  </div>
-
-  <div id="ios-banner">
-    📲 想加到主畫面嗎？<br>
-    點 Safari 的 <strong>分享 □↑</strong> → <strong>加入主畫面</strong>
   </div>
 
   <div class="progress-wrap">
@@ -984,12 +965,6 @@ function init() {
   updateProgress();
   bindButtons();
 
-  // iOS 提示
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-  if (isIOS && !isStandalone) {
-    document.getElementById('ios-banner').style.display = 'block';
-  }
 }
 
 // ══════════════════════════════════════
